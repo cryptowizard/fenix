@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.history
 
 import mozilla.components.concept.storage.HistoryStorage
+import mozilla.components.concept.storage.SearchResult
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
 import org.mozilla.fenix.perf.runBlockingIncrement
@@ -20,6 +21,8 @@ interface PagedHistoryProvider {
      * @param onComplete A callback that returns the list of [VisitInfo]
      */
     fun getHistory(offset: Long, numberOfItems: Long, onComplete: (List<VisitInfo>) -> Unit)
+
+    fun getHistorySearchResults(query: String,numberOfItems: Int, onComplete: (List<SearchResult>) -> Unit)
 }
 
 // A PagedList DataSource runs on a background thread automatically.
@@ -50,5 +53,14 @@ fun HistoryStorage.createSynchronousPagedHistoryProvider(): PagedHistoryProvider
                 onComplete(history)
             }
         }
+
+        override fun getHistorySearchResults(query: String,numberOfItems: Int, onComplete: (List<SearchResult>) -> Unit) {
+            runBlockingIncrement {
+                val history = getSuggestions(query, numberOfItems)
+
+                onComplete(history)
+            }
+        }
+
     }
 }
