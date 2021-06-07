@@ -6,21 +6,32 @@ package org.mozilla.fenix.library.history
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 import androidx.paging.LivePagedListBuilder
 import androidx.paging.PagedList
 import org.mozilla.fenix.components.history.PagedHistoryProvider
 
-class HistoryViewModel(historyProvider: PagedHistoryProvider) : ViewModel() {
+class HistoryViewModel(private val historyProvider: PagedHistoryProvider) : ViewModel() {
     var history: LiveData<PagedList<HistoryItem>>
     var userHasHistory = MutableLiveData(true)
-    private val datasource: LiveData<HistoryDataSource>
+    var datasource: LiveData<HistoryDataSource>
+    val query = MutableLiveData<String>(null)
 
     init {
-        val historyDataSourceFactory = HistoryDataSourceFactory(historyProvider)
+        val historyDataSourceFactory = HistoryDataSourceFactory("", historyProvider)
         datasource = historyDataSourceFactory.datasource
 
-        history = LivePagedListBuilder(historyDataSourceFactory, PAGE_SIZE)
+        history = Transformations.switchMap(query) { query ->
+            getHistoryLiveData(query ?: "")
+        }
+    }
+
+    private fun getHistoryLiveData(query: String): LiveData<PagedList<HistoryItem>> {
+        val historyDataSourceFactory = HistoryDataSourceFactory(query, historyProvider)
+        datasource = historyDataSourceFactory.datasource
+
+        return LivePagedListBuilder(historyDataSourceFactory, PAGE_SIZE)
             .setBoundaryCallback(object : PagedList.BoundaryCallback<HistoryItem>() {
                 override fun onZeroItemsLoaded() {
                     userHasHistory.value = false
@@ -28,6 +39,7 @@ class HistoryViewModel(historyProvider: PagedHistoryProvider) : ViewModel() {
             })
             .build()
     }
+
 
     fun invalidate() {
         datasource.value?.invalidate()

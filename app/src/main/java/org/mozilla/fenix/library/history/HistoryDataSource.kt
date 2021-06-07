@@ -10,6 +10,7 @@ import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import org.mozilla.fenix.components.history.PagedHistoryProvider
 
 class HistoryDataSource(
+    private val searchQuery: String = "",
     private val historyProvider: PagedHistoryProvider
 ) : ItemKeyedDataSource<Int, HistoryItem>() {
 
@@ -23,19 +24,25 @@ class HistoryDataSource(
         callback: LoadInitialCallback<HistoryItem>
     ) {
         historyProvider.getHistory(INITIAL_OFFSET, params.requestedLoadSize.toLong()) { history ->
-            val items = history.mapIndexed(transformVisitInfoToHistoryItem(INITIAL_OFFSET.toInt()))
+            val items = history.filter { item -> item.contains(searchQuery) }.mapIndexed(transformVisitInfoToHistoryItem(INITIAL_OFFSET.toInt()))
             callback.onResult(items)
         }
     }
 
     override fun loadAfter(params: LoadParams<Int>, callback: LoadCallback<HistoryItem>) {
         historyProvider.getHistory(params.key.toLong(), params.requestedLoadSize.toLong()) { history ->
-            val items = history.mapIndexed(transformVisitInfoToHistoryItem(params.key))
+            val items = history.filter { item -> item.contains(searchQuery) }.mapIndexed(transformVisitInfoToHistoryItem(params.key))
             callback.onResult(items)
         }
     }
 
-    override fun loadBefore(params: LoadParams<Int>, callback: LoadCallback<HistoryItem>) { /* noop */ }
+    private fun VisitInfo.contains(searchQuery: String): Boolean {
+        return this.title?.contains(searchQuery) ?: false || this.url.contains(searchQuery)
+    }
+
+
+    override fun loadBefore(params: LoadParams<Int>, callback: LoadCallback<HistoryItem>) { /* noop */
+    }
 
     companion object {
         private const val INITIAL_OFFSET = 0L

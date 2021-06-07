@@ -9,12 +9,13 @@ import androidx.paging.DataSource
 import org.mozilla.fenix.components.history.PagedHistoryProvider
 
 class HistoryDataSourceFactory(
+    private val searchQuery: String = "",
     private val historyProvider: PagedHistoryProvider
 ) : DataSource.Factory<Int, HistoryItem>() {
     val datasource = MutableLiveData<HistoryDataSource>()
 
     override fun create(): DataSource<Int, HistoryItem> {
-        val datasource = HistoryDataSource(historyProvider)
+        val datasource = HistoryDataSource(searchQuery, historyProvider)
         this.datasource.postValue(datasource)
         return datasource
     }
